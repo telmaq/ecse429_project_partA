@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.vogella.integrationtests.GithubIntegrationTests" tests="3" skipped="0" failures="0" errors="0" timestamp="2023-02-10T22:15:17" hostname="telemaque.local" time="1.521">
+  <properties/>
+  <testcase name="ensureThatUserAPICallReturnStatusCode200()" classname="com.vogella.integrationtests.GithubIntegrationTests" time="0.851"/>
+  <testcase name="Ensure that the JSON for the user vogella contains a reference to the Twitter user" classname="com.vogella.integrationtests.GithubIntegrationTests" time="0.317"/>
+  <testcase name="Ensures that the content type starts with application/json" classname="com.vogella.integrationtests.GithubIntegrationTests" time="0.353"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

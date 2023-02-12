@@ -7,27 +7,52 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandlers;
 
+import javax.management.ObjectName;
+
+import org.json.JSONException;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.skyscreamer.jsonassert.JSONAssert;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 class RestApiTest {
         private static final String BASE_URL = "http://localhost:4567/";
 
-        private Process proc;
+        private Process runTodoManagerRestApi;
+        ObjectMapper mapper = new ObjectMapper();
 
+        // Initial State JSON Strings
+        // Todos JSON
         private final String listOfTodosJSON = "{\"todos\":[{\"id\":\"2\",\"title\":\"file paperwork\",\"doneStatus\":\"false\",\"description\":\"\",\"tasksof\":[{\"id\":\"1\"}]},{\"id\":\"1\",\"title\":\"scan paperwork\",\"doneStatus\":\"false\",\"description\":\"\",\"categories\":[{\"id\":\"1\"}],\"tasksof\":[{\"id\":\"1\"}]}]}";
+        private final String TodoPOST = "{\"id\":\"3\",\"title\":\"Test1\",\"doneStatus\":\"false\",\"description\":\"Test description\"}";
+        private final String TodoPOSTAfterState = "{\"todos\":[{\"id\":\"2\",\"title\":\"file paperwork\",\"doneStatus\":\"false\",\"description\":\"\",\"tasksof\":[{\"id\":\"1\"}]},{\"id\":\"1\",\"title\":\"scan paperwork\",\"doneStatus\":\"false\",\"description\":\"\",\"categories\":[{\"id\":\"1\"}],\"tasksof\":[{\"id\":\"1\"}]},{\"id\":\"3\",\"title\":\"Test1\",\"doneStatus\":\"false\",\"description\":\"Test description\"}]}";
+        private final String TodoGETId = "{\"todos\":[{\"id\":\"1\",\"title\":\"scan paperwork\",\"doneStatus\":\"false\",\"description\":\"\",\"categories\":[{\"id\":\"1\"}],\"tasksof\":[{\"id\":\"1\"}]}]}";
+        private final String TodoPOSTId = "{\"id\":\"1\",\"title\":\"Title change\",\"doneStatus\":\"false\",\"description\":\"\",\"categories\":[{\"id\":\"1\"}],\"tasksof\":[{\"id\":\"1\"}]}";
+        private final String TodoPOSTIdAfterState = "{\"todos\":[{\"id\":\"1\",\"title\":\"Title change\",\"doneStatus\":\"false\",\"description\":\"\",\"categories\":[{\"id\":\"1\"}],\"tasksof\":[{\"id\":\"1\"}]},{\"id\":\"2\",\"title\":\"file paperwork\",\"doneStatus\":\"false\",\"description\":\"\",\"tasksof\":[{\"id\":\"1\"}]}]}";
+        private final String TodoPUTIdBug = "{\"id\":\"1\",\"title\":\"Title change again\",\"doneStatus\":\"false\",\"description\":\"\",\"categories\":[{\"id\":\"1\"}],\"tasksof\":[{\"id\":\"1\"}]}";
+        private final String TodoPUTId = "{\"id\":\"1\",\"title\":\"Title change again\",\"doneStatus\":\"false\",\"description\":\"\"}";
+        private final String TodoPUTIdAfterStateBug = "{\"todos\":[{\"id\":\"1\",\"title\":\"Title change again\",\"doneStatus\":\"false\",\"description\":\"\",\"categories\":[{\"id\":\"1\"}],\"tasksof\":[{\"id\":\"1\"}]},{\"id\":\"2\",\"title\":\"file paperwork\",\"doneStatus\":\"false\",\"description\":\"\",\"tasksof\":[{\"id\":\"1\"}]}]}";
+        private final String TodoPUTIdAfterState = "{\"todos\":[{\"id\":\"1\",\"title\":\"Title change again\",\"doneStatus\":\"false\",\"description\":\"\"},{\"id\":\"2\",\"title\":\"file paperwork\",\"doneStatus\":\"false\",\"description\":\"\",\"tasksof\":[{\"id\":\"1\"}]}]}";
+        private final String TodoDELETEIdAfterState = "{\"todos\":[{\"id\":\"2\",\"title\":\"file paperwork\",\"doneStatus\":\"false\",\"description\":\"\",\"tasksof\":[{\"id\":\"1\"}]}]}";
+        private final String TodoGETIdCategory = "{\"categories\":[{\"id\":\"1\",\"title\":\"Office\",\"description\":\"\"}]}";
+        private final String TodoPOSTIdCategory = "{\"id\":\"3\",\"title\":\"Test\",\"description\":\"Test Description\"}";
+        private final String TodoPOSTIdCategoryAfterState = "{\"todos\":[{\"id\":\"2\",\"title\":\"file paperwork\",\"doneStatus\":\"false\",\"description\":\"\",\"tasksof\":[{\"id\":\"1\"}]},{\"id\":\"1\",\"title\":\"scan paperwork\",\"doneStatus\":\"false\",\"description\":\"\",\"categories\":[{\"id\":\"1\"},{\"id\":\"3\"}],\"tasksof\":[{\"id\":\"1\"}]}]}";
+
+        private final String listOfProjectsJSON = "{\"projects\":[{\"id\":\"1\",\"title\":\"Office Work\",\"completed\":\"false\",\"active\":\"false\",\"description\":\"\",\"tasks\":[{\"id\":\"2\"},{\"id\":\"1\"}]}]}";
+        private final String listOfCategoriesJSON = "{\"categories\":[{\"id\":\"1\",\"title\":\"Office\",\"description\":\"\"},{\"id\":\"2\",\"title\":\"Home\",\"description\":\"\"}]}";
 
         @BeforeEach
         // TODO: set a base of todos, projects and categories that will represent the
         // previous state
         public void setUp() throws InterruptedException {
                 try {
-
-                        proc = Runtime.getRuntime().exec("java -jar runTodoManagerRestAPI-1.5.5.jar");
+                        runTodoManagerRestApi = Runtime.getRuntime().exec("java -jar runTodoManagerRestAPI-1.5.5.jar");
                 } catch (IOException e) {
                         e.printStackTrace();
                 }
@@ -35,14 +60,14 @@ class RestApiTest {
                 System.out.println("Starting tests in...\n");
                 for (int i = 3; i > 0; i--) {
                         System.out.println(i);
-                        Thread.sleep(1000);
+                        Thread.sleep(500);
                 }
         }
 
         @AfterEach
         // Todo: Delete all todos, projects and categories before the next test
         void setdown() {
-                proc.destroy();
+                runTodoManagerRestApi.destroy();
         }
 
         // todos
@@ -54,9 +79,13 @@ class RestApiTest {
                                 .build();
 
                 HttpResponse<String> response = client.send(request, BodyHandlers.ofString());
-                System.out.println(response.body());
                 assertEquals(200, response.statusCode());
-                assertEquals(listOfTodosJSON, response.body());
+                try {
+                        JSONAssert.assertEquals(listOfTodosJSON, response.body(), false);
+                        System.out.println("JSON objects are equal.");
+                } catch (JSONException e) {
+                        System.out.println("JSON objects are not equal.");
+                }
         }
 
         @Test
@@ -78,12 +107,24 @@ class RestApiTest {
                                 .uri(URI.create(BASE_URL + "todos"))
                                 .header("Content-Type", "application/json")
                                 .POST(HttpRequest.BodyPublishers.ofString(
-                                                "{\"title\": \"Test\", \"doneStatus\": false, \"description\": \"Test description\"}"))
+                                                "{\"title\": \"Test1\", \"doneStatus\": false, \"description\": \"Test description\"}"))
                                 .build();
 
                 HttpResponse<String> response = client.send(request, BodyHandlers.ofString());
                 assertEquals(201, response.statusCode());
+                assertEquals(TodoPOST, response.body());
 
+                HttpRequest request2 = HttpRequest.newBuilder()
+                                .uri(URI.create(BASE_URL + "todos"))
+                                .build();
+
+                HttpResponse<String> response2 = client.send(request2, BodyHandlers.ofString());
+                try {
+                        JSONAssert.assertEquals(TodoPOSTAfterState, response2.body(), false);
+                        System.out.println("JSON objects are equal.");
+                } catch (JSONException e) {
+                        System.out.println("JSON objects are not equal.");
+                }
         }
 
         // todos/:id
@@ -96,6 +137,12 @@ class RestApiTest {
 
                 HttpResponse<String> response = client.send(request, BodyHandlers.ofString());
                 assertEquals(200, response.statusCode());
+                try {
+                        JSONAssert.assertEquals(TodoGETId, response.body(), false);
+                        System.out.println("JSON objects are equal.");
+                } catch (JSONException e) {
+                        System.out.println("JSON objects are not equal.");
+                }
         }
 
         @Test
@@ -117,25 +164,100 @@ class RestApiTest {
                                 .uri(URI.create(BASE_URL + "todos/1"))
                                 .header("Content-Type", "application/json")
                                 .POST(HttpRequest.BodyPublishers.ofString(
-                                                "{\"title\": \"Test\", \"doneStatus\": false, \"description\": \"Test description\"}"))
+                                                "{\"title\": \"Title change\"}"))
                                 .build();
 
                 HttpResponse<String> response = client.send(request, BodyHandlers.ofString());
                 assertEquals(200, response.statusCode());
+                assertEquals(TodoPOSTId, response.body());
+
+                HttpRequest request2 = HttpRequest.newBuilder()
+                                .uri(URI.create(BASE_URL + "todos"))
+                                .build();
+
+                HttpResponse<String> response2 = client.send(request2, BodyHandlers.ofString());
+                try {
+                        JSONAssert.assertEquals(TodoPOSTIdAfterState, response2.body(), false);
+                        System.out.println("JSON objects are equal.");
+                } catch (JSONException e) {
+                        System.out.println("JSON objects are not equal.");
+                }
         }
 
+        // Unexpected side effect detected. Response body does not display categories
+        // and project of the todo. Different from the
+        // Response body of the POST request above.
         @Test
-        void testSpecificTodoPutRequest() throws Exception {
+        void testSpecificTodoPutRequestBug() throws Exception {
                 HttpClient client = HttpClient.newHttpClient();
                 HttpRequest request = HttpRequest.newBuilder()
                                 .uri(URI.create(BASE_URL + "todos/1"))
                                 .header("Content-Type", "application/json")
                                 .PUT(HttpRequest.BodyPublishers.ofString(
-                                                "{\"title\": \"Test\", \"doneStatus\": false, \"description\": \"Test description\"}"))
+                                                "{\"title\": \"Title change again\"}"))
                                 .build();
 
                 HttpResponse<String> response = client.send(request, BodyHandlers.ofString());
                 assertEquals(200, response.statusCode());
+                assertEquals(TodoPUTIdBug, response.body());
+        }
+
+        // Unexpected side effect detected. Because the payload of the PUT request
+        // ommitted categories and projects, it changed the todo with id 1 object
+        // to not have any associations with categories and projects.
+        @Test
+        void testSpecificTodoPutRequestBug2() throws Exception {
+                HttpClient client = HttpClient.newHttpClient();
+                HttpRequest request = HttpRequest.newBuilder()
+                                .uri(URI.create(BASE_URL + "todos/1"))
+                                .header("Content-Type", "application/json")
+                                .PUT(HttpRequest.BodyPublishers.ofString(
+                                                "{\"title\": \"Title change again\"}"))
+                                .build();
+
+                HttpResponse<String> response = client.send(request, BodyHandlers.ofString());
+                assertEquals(200, response.statusCode());
+                assertEquals(TodoPUTId, response.body());
+
+                HttpRequest request2 = HttpRequest.newBuilder()
+                                .uri(URI.create(BASE_URL + "todos"))
+                                .build();
+
+                HttpResponse<String> response2 = client.send(request2, BodyHandlers.ofString());
+                try {
+                        JSONAssert.assertEquals(TodoPUTIdAfterStateBug, response2.body(), false);
+                        System.out.println("JSON objects are equal.");
+                } catch (JSONException e) {
+                        System.out.println("JSON objects are not equal.");
+                }
+        }
+
+        @Test
+        void testSpecificTodoPutRequestCorrect() throws Exception {
+                HttpClient client = HttpClient.newHttpClient();
+                HttpRequest request = HttpRequest.newBuilder()
+                                .uri(URI.create(BASE_URL + "todos/1"))
+                                .header("Content-Type", "application/json")
+                                .PUT(HttpRequest.BodyPublishers.ofString(
+                                                "{\"title\": \"Title change again\"}"))
+                                .build();
+
+                HttpResponse<String> response = client.send(request, BodyHandlers.ofString());
+                assertEquals(200, response.statusCode());
+                assertEquals(TodoPUTId, response.body());
+
+                HttpRequest request2 = HttpRequest.newBuilder()
+                                .uri(URI.create(BASE_URL + "todos"))
+                                .build();
+
+                HttpResponse<String> response2 = client.send(request2, BodyHandlers.ofString());
+
+                try {
+                        JSONAssert.assertEquals(TodoPUTIdAfterState, response2.body(), false);
+                        System.out.println("JSON objects are equal.");
+                } catch (JSONException e) {
+                        System.out.println("JSON objects are not equal.");
+                }
         }
 
         @Test
@@ -148,6 +270,18 @@ class RestApiTest {
 
                 HttpResponse<String> response = client.send(request, BodyHandlers.ofString());
                 assertEquals(200, response.statusCode());
+
+                HttpRequest request2 = HttpRequest.newBuilder()
+                                .uri(URI.create(BASE_URL + "todos"))
+                                .build();
+
+                HttpResponse<String> response2 = client.send(request2, BodyHandlers.ofString());
+                try {
+                        JSONAssert.assertEquals(TodoDELETEIdAfterState, response2.body(), false);
+                        System.out.println("JSON objects are equal.");
+                } catch (JSONException e) {
+                        System.out.println("JSON objects are not equal.");
+                }
         }
 
         // todos/:id/categories
@@ -161,6 +295,12 @@ class RestApiTest {
 
                 HttpResponse<String> response = client.send(request, BodyHandlers.ofString());
                 assertEquals(200, response.statusCode());
+                try {
+                        JSONAssert.assertEquals(TodoGETIdCategory, response.body(), false);
+                        System.out.println("JSON objects are equal.");
+                } catch (JSONException e) {
+                        System.out.println("JSON objects are not equal.");
+                }
         }
 
         @Test
@@ -181,11 +321,25 @@ class RestApiTest {
                 HttpRequest request = HttpRequest.newBuilder()
                                 .uri(URI.create(BASE_URL + "todos/1/categories"))
                                 .header("Content-Type", "application/json")
-                                .POST(HttpRequest.BodyPublishers.ofString("{\"name\": \"Test\"}"))
+                                .POST(HttpRequest.BodyPublishers.ofString(
+                                                "{\"title\": \"Test\", \"Description\": \"Test Description\"}"))
                                 .build();
 
                 HttpResponse<String> response = client.send(request, BodyHandlers.ofString());
                 assertEquals(201, response.statusCode());
+                assertEquals(TodoPOSTIdCategory, response.body());
+
+                HttpRequest request2 = HttpRequest.newBuilder()
+                                .uri(URI.create(BASE_URL + "todos"))
+                                .build();
+
+                HttpResponse<String> response2 = client.send(request2, BodyHandlers.ofString());
+                try {
+                        JSONAssert.assertEquals(TodoPOSTIdCategoryAfterState, response2.body(), false);
+                        System.out.println("JSON objects are equal.");
+                } catch (JSONException e) {
+                        System.out.println("JSON objects are not equal.");
+                }
         }
 
         // todos/:id/categories/:id
@@ -269,6 +423,7 @@ class RestApiTest {
 
                 HttpResponse<String> response = client.send(request, BodyHandlers.ofString());
                 assertEquals(200, response.statusCode());
+                assertEquals(listOfProjectsJSON, response.body());
         }
 
         @Test
@@ -480,6 +635,7 @@ class RestApiTest {
 
                 HttpResponse<String> response = client.send(request, BodyHandlers.ofString());
                 assertEquals(200, response.statusCode());
+                assertEquals(listOfCategoriesJSON, response.body());
         }
 
         @Test

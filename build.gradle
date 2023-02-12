@@ -14,8 +14,9 @@ dependencies {
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.1'
     implementation 'org.apache.httpcomponents:httpclient:4.5.14'
     testImplementation 'org.assertj:assertj-core:3.20.2'
-
-
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.11.3'
+    testImplementation 'junit:junit:4.13'
+    testImplementation 'org.skyscreamer:jsonassert:1.5.0'
 }
 
 test {

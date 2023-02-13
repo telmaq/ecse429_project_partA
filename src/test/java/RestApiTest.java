@@ -7,25 +7,16 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandlers;
 
-import javax.management.ObjectName;
-
 import org.json.JSONException;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.skyscreamer.jsonassert.JSONAssert;
-
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 class RestApiTest {
         private static final String BASE_URL = "http://localhost:4567/";
 
         private Process runTodoManagerRestApi;
-        ObjectMapper mapper = new ObjectMapper();
 
         // Initial State JSON Strings
         // Todos JSON

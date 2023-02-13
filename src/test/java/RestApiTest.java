@@ -123,7 +123,7 @@ class RestApiTest {
                         JSONAssert.assertEquals(listOfTodosJSON, response.body(), false);
                         System.out.println("JSON objects are equal.");
                 } catch (JSONException e) {
-                        System.out.println("JSON objects are not equal.");
+                        throw new AssertionError("JSON objects are not equal.");
                 }
         }
 
@@ -162,7 +162,7 @@ class RestApiTest {
                         JSONAssert.assertEquals(todoPOSTAfterState, getResponse.body(), false);
                         System.out.println("JSON objects are equal.");
                 } catch (JSONException e) {
-                        System.out.println("JSON objects are not equal.");
+                        throw new AssertionError("JSON objects are not equal.");
                 }
         }
 
@@ -219,7 +219,7 @@ class RestApiTest {
                         JSONAssert.assertEquals(todoPOSTIdAfterState, getResponse.body(), false);
                         System.out.println("JSON objects are equal.");
                 } catch (JSONException e) {
-                        System.out.println("JSON objects are not equal.");
+                        throw new AssertionError("JSON objects are not equal.");
                 }
         }
 
@@ -267,7 +267,7 @@ class RestApiTest {
                         JSONAssert.assertEquals(todoPUTIdAfterStateBug, getResponse.body(), false);
                         System.out.println("JSON objects are equal.");
                 } catch (JSONException e) {
-                        System.out.println("JSON objects are not equal.");
+                        throw new AssertionError("JSON objects are not equal.");
                 }
         }
 
@@ -295,7 +295,7 @@ class RestApiTest {
                         JSONAssert.assertEquals(todoPUTIdAfterState, getResponse.body(), false);
                         System.out.println("JSON objects are equal.");
                 } catch (JSONException e) {
-                        System.out.println("JSON objects are not equal.");
+                        throw new AssertionError("JSON objects are not equal.");
                 }
         }
 
@@ -319,7 +319,7 @@ class RestApiTest {
                         JSONAssert.assertEquals(todoDELETEIdAfterState, getResponse.body(), false);
                         System.out.println("JSON objects are equal.");
                 } catch (JSONException e) {
-                        System.out.println("JSON objects are not equal.");
+                        throw new AssertionError("JSON objects are not equal.");
                 }
         }
 

@@ -68,6 +68,22 @@ class RestApiTest {
         private final String projectDELETEIdCategoriesAfterState = "";
 
         private final String listOfCategoriesJSON = "{\"categories\":[{\"id\":\"1\",\"title\":\"Office\",\"description\":\"\"},{\"id\":\"2\",\"title\":\"Home\",\"description\":\"\"}]}";
+        private final String categoryPOST = "{\"id\":\"3\",\"title\":\"Test\",\"description\":\"Testing POST request for category\"}";
+        private final String categoryPOSTAfterState = "{\"categories\":[{\"id\":\"1\",\"title\":\"Office\",\"description\":\"\"},{\"id\":\"2\",\"title\":\"Home\",\"description\":\"\"},{\"id\":\"3\",\"title\":\"Test\",\"description\":\"Testing POST request for category\"}]}";
+        private final String categoryGETId = "{\"categories\":[{\"id\":\"1\",\"title\":\"Office\",\"description\":\"\"}]}";
+        private final String categoryPOSTId = "{\"id\":\"1\",\"title\":\"title change\",\"description\":\"Testing POST request for category\"}";
+        private final String categoryPOSTIdAfterState = "{\"categories\":[{\"id\":\"1\",\"title\":\"title change\",\"description\":\"Testing POST request for category\"}]}";
+        private final String categoryPUTId = "{\"id\":\"1\",\"title\":\"title change\",\"description\":\"Testing PUT request for category\"}";
+        private final String categoryPUTIdAfterState = "{\"categories\":[{\"id\":\"1\",\"title\":\"title change\",\"description\":\"Testing PUT request for category\"}]}";
+        private final String categoryDELETEIdAfterState = "{\"errorMessages\":[\"Could not find an instance with categories/1\"]}";
+        private final String categoryGETIdTodo = "{\"todos\":[]}";
+        private final String categoryPOSTIdTodo = "{\"id\":\"3\",\"title\":\"Test\",\"doneStatus\":\"false\",\"description\":\"Test description\"}";
+        private final String categoryPOSTIdTodoAfterState = "{\"todos\":[{\"id\":\"3\",\"title\":\"Test\",\"doneStatus\":\"false\",\"description\":\"Test description\"}]}";
+        private final String categoryDELETEIdTodoAfterState = "";
+        private final String categoryGETIdProject = "{\"projects\":[]}";
+        private final String categoryPOSTIdProject = "{\"id\":\"2\",\"title\":\"change title\",\"completed\":\"false\",\"active\":\"false\",\"description\":\"test\"}";
+        private final String categoryPOSTIdProjectAfterState = "{\"projects\":[{\"id\":\"2\",\"title\":\"change title\",\"completed\":\"false\",\"active\":\"false\",\"description\":\"test\"}]}";
+        private final String categoryDELETEIdProjectAfterState = "";
 
         @BeforeEach
         // TODO: set a base of todos, projects and categories that will represent the
@@ -82,14 +98,15 @@ class RestApiTest {
                 System.out.println("Starting tests in...\n");
                 for (int i = 3; i > 0; i--) {
                         System.out.println(i);
-                        Thread.sleep(500);
+                        Thread.sleep(100);
                 }
         }
 
         @AfterEach
         // Todo: Delete all todos, projects and categories before the next test
-        void setdown() {
+        void setdown() throws InterruptedException {
                 runTodoManagerRestApi.destroy();
+                Thread.sleep(1000);
         }
 
         // todos
@@ -832,7 +849,13 @@ class RestApiTest {
 
                 HttpResponse<String> response = client.send(request, BodyHandlers.ofString());
                 assertEquals(200, response.statusCode());
-                assertEquals(listOfCategoriesJSON, response.body());
+
+                try {
+                        JSONAssert.assertEquals(listOfCategoriesJSON, response.body(), false);
+                        System.out.println("JSON objects are equal.");
+                } catch (JSONException e) {
+                        throw new AssertionError("JSON objects are not equal.");
+                }
         }
 
         @Test
@@ -853,11 +876,24 @@ class RestApiTest {
                 HttpRequest request = HttpRequest.newBuilder()
                                 .uri(URI.create(BASE_URL + "categories"))
                                 .header("Content-Type", "application/json")
-                                .POST(HttpRequest.BodyPublishers.ofString("{\"name\": \"Test\"}"))
+                                .POST(HttpRequest.BodyPublishers.ofString(
+                                                "{\"title\": \"Test\", \"description\":\"Testing POST request for category\"}  "))
                                 .build();
 
                 HttpResponse<String> response = client.send(request, BodyHandlers.ofString());
                 assertEquals(201, response.statusCode());
+                assertEquals(categoryPOST, response.body());
+                HttpRequest getRequest = HttpRequest.newBuilder()
+                                .uri(URI.create(BASE_URL + "categories"))
+                                .build();
+
+                HttpResponse<String> getResponse = client.send(getRequest, BodyHandlers.ofString());
+                try {
+                        JSONAssert.assertEquals(categoryPOSTAfterState, getResponse.body(), false);
+                        System.out.println("JSON objects are equal.");
+                } catch (JSONException e) {
+                        throw new AssertionError("JSON objects are not equal.");
+                }
         }
 
         // categories/:id
@@ -871,6 +907,12 @@ class RestApiTest {
 
                 HttpResponse<String> response = client.send(request, BodyHandlers.ofString());
                 assertEquals(200, response.statusCode());
+                try {
+                        JSONAssert.assertEquals(categoryGETId, response.body(), false);
+                        System.out.println("JSON objects are equal.");
+                } catch (JSONException e) {
+                        throw new AssertionError("JSON objects are not equal.");
+                }
         }
 
         @Test
@@ -889,13 +931,56 @@ class RestApiTest {
         void testSpecificCategoryPostRequest() throws Exception {
                 HttpClient client = HttpClient.newHttpClient();
                 HttpRequest request = HttpRequest.newBuilder()
-                                .uri(URI.create(BASE_URL + "categories"))
+                                .uri(URI.create(BASE_URL + "categories/1"))
                                 .header("Content-Type", "application/json")
-                                .POST(HttpRequest.BodyPublishers.ofString("{\"name\": \"Test\"}"))
+                                .POST(HttpRequest.BodyPublishers.ofString(
+                                                "{\"title\": \"title change\", \"description\":\"Testing POST request for category\"}  "))
                                 .build();
 
                 HttpResponse<String> response = client.send(request, BodyHandlers.ofString());
                 assertEquals(200, response.statusCode());
+                assertEquals(categoryPOSTId, response.body());
+
+                HttpRequest getRequest = HttpRequest.newBuilder()
+                                .uri(URI.create(BASE_URL + "categories/1"))
+                                .build();
+
+                HttpResponse<String> getResponse = client.send(getRequest, BodyHandlers.ofString());
+
+                try {
+                        JSONAssert.assertEquals(categoryPOSTIdAfterState, getResponse.body(), false);
+                        System.out.println("JSON objects are equal.");
+                } catch (JSONException e) {
+                        throw new AssertionError("JSON objects are not equal.");
+                }
+        }
+
+        @Test
+        void testSpecificCategoryPutRequest() throws Exception {
+                HttpClient client = HttpClient.newHttpClient();
+                HttpRequest request = HttpRequest.newBuilder()
+                                .uri(URI.create(BASE_URL + "categories/1"))
+                                .header("Content-Type", "application/json")
+                                .PUT(HttpRequest.BodyPublishers.ofString(
+                                                "{\"title\": \"title change\", \"description\":\"Testing PUT request for category\"}  "))
+                                .build();
+
+                HttpResponse<String> response = client.send(request, BodyHandlers.ofString());
+                assertEquals(200, response.statusCode());
+                assertEquals(categoryPUTId, response.body());
+
+                HttpRequest getRequest = HttpRequest.newBuilder()
+                                .uri(URI.create(BASE_URL + "categories/1"))
+                                .build();
+
+                HttpResponse<String> getResponse = client.send(getRequest, BodyHandlers.ofString());
+
+                try {
+                        JSONAssert.assertEquals(categoryPUTIdAfterState, getResponse.body(), false);
+                        System.out.println("JSON objects are equal.");
+                } catch (JSONException e) {
+                        throw new AssertionError("JSON objects are not equal.");
+                }
         }
 
         @Test
@@ -908,6 +993,14 @@ class RestApiTest {
 
                 HttpResponse<String> response = client.send(request, BodyHandlers.ofString());
                 assertEquals(200, response.statusCode());
+
+                HttpRequest getRequest = HttpRequest.newBuilder()
+                                .uri(URI.create(BASE_URL + "categories/1"))
+                                .build();
+
+                HttpResponse<String> getResponse = client.send(getRequest, BodyHandlers.ofString());
+                assertEquals(404, getResponse.statusCode());
+                assertEquals(categoryDELETEIdAfterState, getResponse.body());
         }
 
         // categories/:id/todos
@@ -921,6 +1014,7 @@ class RestApiTest {
 
                 HttpResponse<String> response = client.send(request, BodyHandlers.ofString());
                 assertEquals(200, response.statusCode());
+                assertEquals(categoryGETIdTodo, response.body());
         }
 
         @Test
@@ -947,6 +1041,21 @@ class RestApiTest {
 
                 HttpResponse<String> response = client.send(request, BodyHandlers.ofString());
                 assertEquals(201, response.statusCode());
+                assertEquals(categoryPOSTIdTodo, response.body());
+
+                HttpRequest getRequest = HttpRequest.newBuilder()
+                                .uri(URI.create(BASE_URL + "categories/1/todos"))
+                                .build();
+
+                HttpResponse<String> getResponse = client.send(getRequest, BodyHandlers.ofString());
+
+                try {
+                        JSONAssert.assertEquals(categoryPOSTIdTodoAfterState, getResponse.body(), false);
+                        System.out.println("JSON objects are equal.");
+                } catch (JSONException e) {
+                        throw new AssertionError("JSON objects are not equal.");
+                }
+
         }
 
         // categories/:id/todos/:id
@@ -960,7 +1069,15 @@ class RestApiTest {
                                 .build();
 
                 HttpResponse<String> response = client.send(request, BodyHandlers.ofString());
-                assertEquals(200, response.statusCode());
+                assertEquals(404, response.statusCode());
+
+                HttpRequest getRequest = HttpRequest.newBuilder()
+                                .uri(URI.create(BASE_URL + "categories/1/todo/1"))
+                                .build();
+
+                HttpResponse<String> getResponse = client.send(getRequest, BodyHandlers.ofString());
+                assertEquals(404, getResponse.statusCode());
+                assertEquals(categoryDELETEIdTodoAfterState, getResponse.body());
         }
 
         // categories/:id/projects
@@ -974,6 +1091,8 @@ class RestApiTest {
 
                 HttpResponse<String> response = client.send(request, BodyHandlers.ofString());
                 assertEquals(200, response.statusCode());
+                assertEquals(categoryGETIdProject, response.body());
+
         }
 
         @Test
@@ -994,11 +1113,26 @@ class RestApiTest {
                 HttpRequest request = HttpRequest.newBuilder()
                                 .uri(URI.create(BASE_URL + "categories/1/projects"))
                                 .header("Content-Type", "application/json")
-                                .POST(HttpRequest.BodyPublishers.ofString("{\"name\": \"Test\"}"))
+                                .POST(HttpRequest.BodyPublishers.ofString(
+                                                "{\"title\":\"change title\",\"completed\":false,\"active\":false,\"description\":\"test\"}"))
                                 .build();
 
                 HttpResponse<String> response = client.send(request, BodyHandlers.ofString());
                 assertEquals(201, response.statusCode());
+                assertEquals(categoryPOSTIdProject, response.body());
+
+                HttpRequest getRequest = HttpRequest.newBuilder()
+                                .uri(URI.create(BASE_URL + "categories/1/projects"))
+                                .build();
+
+                HttpResponse<String> getResponse = client.send(getRequest, BodyHandlers.ofString());
+
+                try {
+                        JSONAssert.assertEquals(categoryPOSTIdProjectAfterState, getResponse.body(), false);
+                        System.out.println("JSON objects are equal.");
+                } catch (JSONException e) {
+                        throw new AssertionError("JSON objects are not equal.");
+                }
         }
 
         // categories/:id/projects/:id
@@ -1012,6 +1146,15 @@ class RestApiTest {
                                 .build();
 
                 HttpResponse<String> response = client.send(request, BodyHandlers.ofString());
-                assertEquals(200, response.statusCode());
+                assertEquals(404, response.statusCode());
+
+                HttpRequest getRequest = HttpRequest.newBuilder()
+                                .uri(URI.create(BASE_URL + "categories/1/projects/1"))
+                                .build();
+
+                HttpResponse<String> getResponse = client.send(getRequest, BodyHandlers.ofString());
+                assertEquals(404, getResponse.statusCode());
+                assertEquals(categoryDELETEIdProjectAfterState, getResponse.body());
+
         }
 }
